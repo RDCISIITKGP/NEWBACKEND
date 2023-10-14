@@ -3,7 +3,7 @@ import insertSummary from "./insertSummary"
 
 const scheduledTask = async () => {
     schedule.scheduleJob(
-        { hour: 0, minute: 32, tz: "Asia/Kolkata" },
+        { hour: 23, minute: 30, tz: "Asia/Kolkata" },
         async () => {
             await insertSummary()
 

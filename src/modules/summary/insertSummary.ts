@@ -40,9 +40,6 @@ const insertSummary = async () => {
 
     const yesterdayMidnightIST = getYesterdayMidnightIST()
 
-    const startTimeMin = "2023-07-25T13:00:00"
-    const startTimeMax = "2023-07-26T00:00:00"
-
     const objectId = "64918764fedaff5916642880"
     const query1 = { _id: new ObjectId(objectId) }
     const thresholds = await collectionThresh.findOne(query1)
@@ -89,6 +86,7 @@ const insertSummary = async () => {
         }
 
         const z_rms_vell = []
+
         for (
             let i = filteredIndexes[0];
             i < filteredIndexes[filteredIndexes.length - 1];
