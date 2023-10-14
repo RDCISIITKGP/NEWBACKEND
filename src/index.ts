@@ -8,7 +8,8 @@ import dataRoute from "./modules/analytics/analytics.route"
 import deviceRoute from "./modules/device/device.route"
 import userRoute from "./modules/user/user.route"
 import thresholdRoute from "./modules/threshold/threshold.route"
-import scheduledTask from "./modules/email/scheduledTask"
+import scheduleEmailtask from "./modules/email/scheduleTask"
+import scheduleSummarytask from "./modules/summary/scheduleTask"
 
 //options for cors midddleware
 const options = {
@@ -45,7 +46,9 @@ app.use("/api/threshold", thresholdRoute)
 const server = app.listen(4000, async () => {
     await connectToDatabase()
 
-    await scheduledTask()
+    await scheduleEmailtask()
+
+    await scheduleSummarytask()
 
     console.log(`Server listening at http://localhost/4000`)
 })

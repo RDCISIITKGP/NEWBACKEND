@@ -1,14 +1,14 @@
-import sendEmail from "./sendEmail"
 import schedule from "node-schedule"
+import insertSummary from "./insertSummary"
 
 const scheduledTask = async () => {
     schedule.scheduleJob(
-        { hour: 0, minute: 0, tz: "Asia/Kolkata" },
+        { hour: 0, minute: 32, tz: "Asia/Kolkata" },
         async () => {
-            await sendEmail()
+            await insertSummary()
 
             console.log(
-                "Task executed at 12:00 AM",
+                "Summary Task executed at 12:00 AM",
                 new Date().toLocaleTimeString()
             )
         }
