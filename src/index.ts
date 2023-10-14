@@ -1,18 +1,14 @@
-const express = require("express")
-const dotenv = require("dotenv")
-const cookieParser = require("cookie-parser")
-const cors = require("cors")
-const helmet = require("helmet")
-const {
-    connectToDatabase,
-    disconnectFromDatabase,
-} = require("./utils/database")
-import mongoose from "mongoose"
+import express from "express"
+import dotenv from "dotenv"
+import cookieParser from "cookie-parser"
+import cors from "cors"
+import helmet from "helmet"
+import { connectToDatabase, disconnectFromDatabase } from "./utils/database"
 import dataRoute from "./modules/analytics/analytics.route"
-import { analyticsSchema } from "./modules/analytics/analytics.schema"
 import deviceRoute from "./modules/device/device.route"
 import userRoute from "./modules/user/user.route"
 import thresholdRoute from "./modules/threshold/threshold.route"
+import scheduledTask from "./modules/email/scheduledTask"
 
 //options for cors midddleware
 const options = {
@@ -46,36 +42,13 @@ app.use("/api/devices", deviceRoute)
 app.use("/api/users", userRoute)
 app.use("/api/threshold", thresholdRoute)
 
-// app.get('/fakeUser', async (req, res) => {
-//     const user = new User({ email: 'colt@gmail.com', username: 'Colt' });
-//     const newUser = await User.register(user, 'chicken');
-//     res.send(newUser);
-
-// })
-let i = 0
 const server = app.listen(4000, async () => {
-    ++i
-
     await connectToDatabase()
+
+    await scheduledTask()
 
     console.log(`Server listening at http://localhost/4000`)
 })
-
-// OnChange Streams
-// mongoose.connection.once("open", () => {
-//     console.log("MongoDB database connected")
-
-//     const analyticsChangeStream = mongoose.connection
-//         .collection("analytics")
-//         .watch()
-
-//     analyticsChangeStream.on("change", (change) => {
-//         if (change.operationType === "insert") {
-//             const newDocument = change.fullDocument
-//             console.log("New document inserted: ", newDocument)
-//         }
-//     })
-// })
 
 const signals = ["SIGTERM", "SIGINT"]
 
@@ -84,9 +57,8 @@ const gracefulShutdown = (signal: any) => {
         console.log("Goodbye, got signal", signal)
         server.close()
 
-        await disconnectFromDatabase()
-
         // disconnect from the db.
+        await disconnectFromDatabase()
 
         console.log("My work here is done ")
 
@@ -98,21 +70,3 @@ const gracefulShutdown = (signal: any) => {
 for (let i = 0; i < signals.length; i++) {
     gracefulShutdown(signals[i])
 }
-
-// const mongoose = require('mongoose');
-// //mongodb://127.0.0.1:27017/yelp-camp
-//  const dbUrl = process.env.DB_URL;
-
-// const port = process.env.PORT || 3000
-
-// mongoose.connect(dbUrl, {
-//     useNewUrlParser: true,
-//     useUnifiedTopology: true
-// });
-// ////////////////////////////////////////////////////////////
-
-// const db = mongoose.connection;
-// db.on("error", console.error.bind(console, "connection error:"));
-// db.once("open", () => {
-//     console.log("Database connected");
-// })

@@ -35,4 +35,4 @@ const protect = asyncHandler(async (req, res, next: NextFunction) => {
     }
 })
 
-module.exports = { protect }
+export { protect }

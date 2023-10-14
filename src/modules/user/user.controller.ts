@@ -6,10 +6,10 @@ import { Request } from "express"
 import { LoginUserBody, RegisterUserBody } from "./user.schema"
 import dotenv from "dotenv"
 import { StatusCodes } from "http-status-codes"
+import { ObjectId } from "mongodb"
+
 dotenv.config()
-//////////////////////////////////////////////////////
-////////////////////////////////////////////////////
-//MONGODB
+
 const { MongoClient, ServerApiVersion } = require("mongodb")
 const uri = "mongodb://nasim:nasim%40msf@103.154.184.52:27017"
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -20,9 +20,6 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     },
 })
-////////////////////////////////////////////////////////
-///////////////////////////////////////////
-//////////////////////////////////////
 
 /**
  @desc    Register new user
@@ -33,6 +30,12 @@ const registerUser = asyncHandler(
     async (req: Request<{}, {}, RegisterUserBody>, res) => {
         console.log("YEH I GOT YOU, I LOVE YOU")
         const { name, email, password, profileImage, role, phone } = req.body
+        // const name = "Ananta Dutta"
+        // const email = "duttaananta03@gmail.com"
+        // const password = "Ananta_dutta_123"
+        // const profileImage = ""
+        // const role = "Admin"
+        // const phone = "9679196904"
 
         if (!name || !email || !password) {
             res.status(400)
@@ -150,28 +153,42 @@ const getUsers = asyncHandler(async (req, res) => {
 @access Private
 */
 const deleteUser = asyncHandler(async (req, res) => {
-    const user = await UserModel.findById(req.params.id)
+    const userId = req.params.id
+    console.log({ userId })
 
-    if (!user) {
-        res.status(StatusCodes.BAD_REQUEST)
-        throw new Error("User not found")
+    try {
+        await client.connect()
+        const db = client.db("BSP")
+        const collectionUser = db.collection("users")
+
+        const user = await collectionUser.deleteOne({
+            _id: new ObjectId(userId),
+        })
+
+        console.log({ user })
+
+        if (!!user) {
+            res.status(StatusCodes.OK).json({ id: req.params.id })
+        } else {
+            res.status(StatusCodes.NOT_FOUND).json({ error: "User not found" })
+        }
+    } catch (error) {
+        res.status(StatusCodes.BAD_REQUEST).json({ error })
     }
 
     // @ts-ignore
-    if (!req.user) {
-        res.status(StatusCodes.UNAUTHORIZED)
-        throw new Error("User not found")
-    }
+    // if (!req.user) {
+    //     res.status(StatusCodes.UNAUTHORIZED)
+    //     throw new Error("User not found")
+    // }
 
     // @ts-ignore
-    if (user._id.toString() !== req.user.id) {
-        res.status(StatusCodes.UNAUTHORIZED)
-        throw new Error("User not authorized")
-    }
+    // if (user._id.toString() !== req.user.id) {
+    //     res.status(StatusCodes.UNAUTHORIZED)
+    //     throw new Error("User not authorized")
+    // }
 
-    await user.remove()
-
-    res.status(StatusCodes.OK).json({ id: req.params.id })
+    // await user.remove()
 })
 
 /**

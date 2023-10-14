@@ -8,8 +8,7 @@ import {
     deleteUser,
     updateUser,
 } from "./user.controller"
-import { request } from "http"
-const { protect } = require("../../middlewares/auth.middleware")
+import { protect } from "../../middlewares/auth.middleware"
 
 /**
  @desc - Inserts a new user into the database.
@@ -45,7 +44,7 @@ router.get("/all", getUsers)
  @returns - Returns the if of the user deleted. 
  @middleware - Checks and verifies the jwt authentication token.
  */
-router.delete("/:id", protect, deleteUser)
+router.delete("/:id", deleteUser)
 
 /**
  @desc - Updates the user with the given id.

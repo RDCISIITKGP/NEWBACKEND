@@ -230,25 +230,25 @@ export async function getUpdatedData(req: Request, res: Response) {
 
     res.json(allSet)
 }
-///////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
 
-export async function getRMSData(req: Request, res: Response) {
-    const h = req.body.title
+export async function getRMSData(
+    req: Request<{}, {}, {}, { asset_id: string }>,
+    res: Response
+) {
+    const asset_id = req.query.asset_id
+
+    console.log({ asset_id })
     await client.connect()
     const db = client.db("BSP")
     const collectionUser = db.collection("rmsHistory2")
-    const thresholds = await collectionUser.find({ asset_id: h })
+    const thresholds = await collectionUser.find({ asset_id })
     const all = await thresholds.toArray()
-    /////
     const collection = db.collection("analytics")
     const collectionSummary = db.collection("summary")
     const currentDate = new Date()
     const dateString = currentDate.toISOString().substring(0, 10)
     const query2 = {
-        asset_id: h,
+        asset_id,
     }
 
     const summary = await collectionSummary
@@ -257,7 +257,7 @@ export async function getRMSData(req: Request, res: Response) {
         .limit(1)
         .toArray()
 
-    const query = { asset_id: h } // Define the query to filter documents by asset_id
+    const query = { asset_id } // Define the query to filter documents by asset_id
     const options = {
         sort: { _id: -1 }, // Sort in descending order based on _id field (assuming it represents document creation time)
         limit: 10, // Limit the result to 2 documents
@@ -348,7 +348,7 @@ export async function getRMSData(req: Request, res: Response) {
             z_rms_vel: z_rms_vell,
             timeup: times,
             results: result,
-            asset_id: req.body.title,
+            asset_id,
             start_times: new_start_time,
             FFT_xacc: FFT_acc_x,
             FFT_yacc: FFT_acc_y,
@@ -456,9 +456,6 @@ export async function getMetrics(req: Request, res: Response) {
 
     const thresholds: Document[] = await cursor.toArray()
 
-    //////
-    /////////
-    ////////
     let i = 0
 
     const result = thresholds.map((document: Document) => {
@@ -897,27 +894,31 @@ export async function getMetrics(req: Request, res: Response) {
 }
 
 export async function getFiltMetrics(req: Request, res: Response) {
-    console.log(req.body)
     const h = req.body.title
+
     await client.connect()
     const db = client.db("BSP")
     const collectionUser = db.collection("predictions_2")
 
     const startDate = req.body.startDate.split("+")[0]
     const endDate = req.body.endDate.split("+")[0]
-    console.log(startDate)
-    console.log(endDate)
 
     const query = {
         "Start Time of the document": { $gte: startDate },
         "End Time of the document": { $lte: endDate },
         "Asset Id": h,
     }
+
+    console.log({ query })
+
     function isObjectEmpty(obj: Record<string, any>): boolean {
         return Object.keys(obj).length === 0
     }
 
     const thresholds = await collectionUser.find(query).toArray()
+
+    console.log({ thresholds })
+
     const result = thresholds.map((document: Document) => {
         const anomalousVibrationEt = document["Anomalous Vibration_et"]
         const anomalousVibrationKnn = document["Anomalous Vibration_knn"]
@@ -1120,7 +1121,6 @@ export async function register(req: Request, res: Response) {
     const password = req.body.pass
     const email = req.body.email
     const phone = req.body.phone
-    const pass = req.body.pass
 
     const role = req.body.role
 

@@ -21,5 +21,5 @@ export class User {
 }
 
 export const UserModel = getModelForClass(User, {
-    schemaOptions: { versionKey: false, collection: "users" },
+    schemaOptions: { versionKey: false, collection: "trialUsers" },
 })

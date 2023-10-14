@@ -11,7 +11,7 @@ import {
     getMetrics,
     getFiltMetrics,
     getUsers,
-    register
+    register,
 } from "./threshold.controller"
 
 const router = express.Router()
@@ -22,7 +22,7 @@ const router = express.Router()
 router.post("/", getThresholds)
 router.post("/filter", getFilteredData)
 router.post("/filterfft", getFilteredDataFFT)
-router.post("/rms", getRMSData)
+router.get("/rms", getRMSData)
 router.post("/update", getUpdatedData)
 router.post("/save", getSavedData)
 router.post("/metrics", getMetrics)
