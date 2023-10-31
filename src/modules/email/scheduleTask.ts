@@ -3,7 +3,7 @@ import schedule from "node-schedule"
 
 const scheduleTask = async () => {
     schedule.scheduleJob(
-        { hour: 0, minute: 0, tz: "Asia/Kolkata" },
+        { hour: 0, minute: 20, tz: "Asia/Kolkata" },
         async () => {
             await sendEmail()
 

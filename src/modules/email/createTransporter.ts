@@ -6,7 +6,7 @@ const DRIVE_API_CLIENT_ID =
     "775638868772-aa7vl63a8d7hejc2rdb520gm78os2659.apps.googleusercontent.com"
 const DRIVE_API_CLIENT_SECRET = "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"
 const DRIVE_API_REFRESH_TOKEN =
-    "1//04ljwn48TxFq5CgYIARAAGAQSNgF-L9IrXWkVIIbs2UVdq6WWRWQSw6QNXWbv2oa9rAK5IgM440B0MG4j6E2oONMmY6Vx5xsqUg"
+    "1//047BPiMrq7oCkCgYIARAAGAQSNgF-L9IraTzN68YJ6vSq8YdYtKQK6Vzl_28QFhikAX8MB4E68ujqmv4QWwi_SmyHJ1duiwyOiA"
 
 const REDIRECT_URI = "https://developers.google.com/oauthplayground"
 
@@ -31,11 +31,11 @@ const createTransporter = async () => {
         service: "gmail",
         auth: {
             user: "eyevibmail@gmail.com",
-            accessToken: String(accessToken),
+            accessToken: String(accessToken?.token),
             clientId: DRIVE_API_CLIENT_ID,
             clientSecret: DRIVE_API_CLIENT_SECRET,
             refreshToken: DRIVE_API_REFRESH_TOKEN,
-            pass: "mazf ocqu lxyv shka",
+            pass: "gdsb peoi kypx ojzo",
         },
     })
     return transporter
