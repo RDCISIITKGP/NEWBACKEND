@@ -7,6 +7,7 @@ import moment, { RFC_2822 } from "moment"
 import { ObjectId } from "mongodb"
 import { Document } from "mongodb"
 import bcrypt from "bcryptjs"
+import { METRIC_INFO, METRIC_INFO_PARSED, devices } from "../../constants"
 //////////////////////////////////////////////////////
 ////////////////////////////////////////////////////
 //MONGODB
@@ -243,21 +244,27 @@ export async function getRMSData(
     const collectionUser = db.collection("rmsHistory2")
     const thresholds = await collectionUser.find({ asset_id })
     const all = await thresholds.toArray()
+
     const collection = db.collection("analytics")
     const collectionSummary = db.collection("summary")
     const currentDate = new Date()
     const dateString = currentDate.toISOString().substring(0, 10)
+
     const query2 = {
         asset_id,
     }
 
+    // Getting recent summary
     const summary = await collectionSummary
         .find(query2)
         .sort({ _id: -1 })
         .limit(1)
         .toArray()
 
+    console.log({ summary })
+
     const query = { asset_id } // Define the query to filter documents by asset_id
+
     const options = {
         sort: { _id: -1 }, // Sort in descending order based on _id field (assuming it represents document creation time)
         limit: 10, // Limit the result to 2 documents
@@ -265,14 +272,15 @@ export async function getRMSData(
 
     const result = await collection.find(query, options).toArray()
 
-    ////////////////////////
     const collectionUser3 = db.collection("threshold")
     const objectId = "64918764fedaff5916642880"
     const query3 = { _id: new ObjectId(objectId) }
     const thresholds3 = await collectionUser3.findOne(query3)
+
     // const time1 = result[0].start_time
     // const time2 = result[1].start_time
     const start_time = []
+
     for (let x of result) {
         start_time.push(x.start_time)
     }
@@ -323,6 +331,7 @@ export async function getRMSData(
     const x_rms_vell = [...all[0].x_rms_vel.splice(-300)]
     const y_rms_vell = [...all[0].y_rms_vel.splice(-300)]
     const z_rms_vell = [...all[0].z_rms_vel.splice(-300)]
+
     const timeUp = [...all[0].time_up.splice(-300)]
     const times = timeUp.map((dateTimeString) => {
         const dateObj = new Date(dateTimeString)
@@ -413,484 +422,340 @@ export async function getSavedData(req: Request, res: Response) {
     res.json(thresholds)
 }
 
-///////////////////////////METRICS
-export async function getMetrics(req: Request, res: Response) {
-    const values = [
-        "6d9083d0-3039-11ed-81ef-d732cfd46ac3",
-        "6d8fc080-3039-11ed-81ef-d732cfd46ac3",
-        "6d8a6950-3039-11ed-81ef-d732cfd46ac3",
-        "6d7ea980-3039-11ed-81ef-d732cfd46ac3",
-        "6d8fe790-3039-11ed-81ef-d732cfd46ac3",
-        "6d8f4b50-3039-11ed-81ef-d732cfd46ac3",
-        "6d7ea981-3039-11ed-81ef-d732cfd46ac3",
-        "6d8a1b31-3039-11ed-81ef-d732cfd46ac3",
-        "6d7f45c2-3039-11ed-81ef-d732cfd46ac3",
-        "6d8f7261-3039-11ed-81ef-d732cfd46ac3",
-        "6d7f45c0-3039-11ed-81ef-d732cfd46ac3",
-        "6d8a4241-3039-11ed-81ef-d732cfd46ac3",
-        "6d973a90-3039-11ed-81ef-d732cfd46ac3",
-        "6d8fe791-3039-11ed-81ef-d732cfd46ac3",
-        "6d8b7ac0-3039-11ed-81ef-d732cfd46ac3",
-        "6d9083d1-3039-11ed-81ef-d732cfd46ac3",
-        "6d8a1b33-3039-11ed-81ef-d732cfd46ac3",
-        "6d8e8800-3039-11ed-81ef-d732cfd46ac3",
-        "6d8a1b32-3039-11ed-81ef-d732cfd46ac3",
-        "6d8a4240-3039-11ed-81ef-d732cfd46ac3",
-        "6d7f45c1-3039-11ed-81ef-d732cfd46ac3",
-        "6d7ea982-3039-11ed-81ef-d732cfd46ac3",
-        "6d8a1b30-3039-11ed-81ef-d732cfd46ac3",
-        "6d7f93e0-3039-11ed-81ef-d732cfd46ac3",
-    ]
+export const getMetrics = async (
+    req: Request<
+        {},
+        {},
+        {},
+        {
+            assetId: string
+            startTime?: string
+            endTime?: string
+            isRealtime: string
+        }
+    >,
+    res: Response
+) => {
+    const { assetId, endTime, isRealtime, startTime } = req.query
 
-    console.log("yeghhh ")
-    const h = req.body.title
-    console.log(h)
-    console.log(req.body)
+    const realtime = JSON.parse(isRealtime)
+
+    console.log({ assetId, endTime, isRealtime, startTime })
+
     await client.connect()
+
+    // Getting predictions 2 data
     const db = client.db("BSP")
-    const collectionUser = db.collection("predictions_2")
-    const cursor = collectionUser
-        .find({ "Asset Id": h })
-        .sort({ _id: -1 })
-        .limit(10)
 
-    const thresholds: Document[] = await cursor.toArray()
+    const predictions2Collection = db.collection("predictions_2")
 
-    let i = 0
+    let predictions2Cursor
 
-    const result = thresholds.map((document: Document) => {
-        console.log(i)
-        ++i
-        const anomalousVibrationEt = document["Anomalous Vibration_et"]
-        const anomalousVibrationKnn = document["Anomalous Vibration_knn"]
-        const anomalousVibrationRf = document["Anomalous Vibration_rf"]
-        const bestPredictions = document["Final State Predicted: "]
-        const misalignmentEt = document.Misalignment_et
-        const misalignmentKnn = document.Misalignment_knn
-        const misalignmentRf = document.Misalignment_rf
-        const loosenessEt = document.Looseness_et
-        const loosenessKnn = document.Looseness_knn
-        const loosenessRf = document.Looseness_rf
-        const start_time = document["Start Time of the document"]
-
-        // Use a for loop to reverse the order
-
-        let bp = 0
-
-        if (bestPredictions == "HEALTHY") {
-            bp = 0
-        } else if (bestPredictions == "LOOSENESS FAULT DETECTED") {
-            bp = 1
-        } else if (bestPredictions == "MISCELLANEOUS VIBRATION DETECTED") {
-            bp = 2
-        } else if (bestPredictions == "ANOMALOUS VIBRATION DETECTED") {
-            bp = 3
-        } else if (bestPredictions == "NO RMS VALUES FOUND") {
-            bp = 4
-        } else {
-            bp = 5
-        }
-
-        let et = 0
-        let knn = 0
-        let rf = 0
-
-        if (!document) {
-            console.log("document is not detected")
-        }
-
-        if (
-            loosenessEt == 0 &&
-            misalignmentEt == 0 &&
-            anomalousVibrationEt == 0
-        ) {
-            ////////////////////////////////
-            if (bestPredictions == "HEALTHY") {
-                et = 0
-            } else if (bestPredictions == "LOOSENESS FAULT DETECTED") {
-                et = 1
-            } else if (bestPredictions == "MISCELLANEOUS VIBRATION DETECTED") {
-                bp = 2
-            } else if (bestPredictions == "ANOMALOUS VIBRATION DETECTED") {
-                et = 3
-            } else if (bestPredictions == "NO RMS VALUES FOUND") {
-                et = 4
-            } else {
-                et = 5
-            }
-            ///////////////////////////////
-        } else if (
-            loosenessEt > misalignmentEt &&
-            loosenessEt > anomalousVibrationEt
-        ) {
-            et = 1
-        } else if (
-            misalignmentEt > loosenessEt &&
-            misalignmentEt > anomalousVibrationEt
-        ) {
-            et = 2
-        } else if (
-            anomalousVibrationEt > loosenessEt &&
-            anomalousVibrationEt > misalignmentEt
-        ) {
-            et = 3
-        } else {
-            et = 0
-        }
-
-        /////////////////ET
-
-        if (
-            loosenessKnn == 0 &&
-            misalignmentKnn == 0 &&
-            anomalousVibrationKnn == 0
-        ) {
-            ////////////////////////////////
-            if (bestPredictions == "HEALTHY") {
-                knn = 0
-            } else if (bestPredictions == "LOOSENESS FAULT DETECTED") {
-                knn = 1
-            } else if (bestPredictions == "MISCELLANEOUS VIBRATION DETECTED") {
-                bp = 2
-            } else if (bestPredictions == "ANOMALOUS VIBRATION DETECTED") {
-                knn = 3
-            } else if (bestPredictions == "NO RMS VALUES FOUND") {
-                knn = 4
-            } else {
-                knn = 5
-            }
-            ///////////////////////////////
-        } else if (
-            loosenessKnn > misalignmentKnn &&
-            loosenessKnn > anomalousVibrationKnn
-        ) {
-            knn = 1
-        } else if (
-            misalignmentKnn > loosenessKnn &&
-            misalignmentKnn > anomalousVibrationKnn
-        ) {
-            knn = 2
-        } else if (
-            anomalousVibrationKnn > loosenessKnn &&
-            anomalousVibrationKnn > misalignmentKnn
-        ) {
-            knn = 3
-        } else {
-            knn = 0
-        }
-
-        ///////////////////////////////KNN
-        if (
-            loosenessRf == 0 &&
-            misalignmentRf == 0 &&
-            anomalousVibrationRf == 0
-        ) {
-            ////////////////////////////////
-            if (bestPredictions == "HEALTHY") {
-                rf = 0
-            } else if (bestPredictions == "LOOSENESS FAULT DETECTED") {
-                rf = 1
-            } else if (bestPredictions == "MISCELLANEOUS VIBRATION DETECTED") {
-                bp = 2
-            } else if (bestPredictions == "ANOMALOUS VIBRATION DETECTED") {
-                rf = 3
-            } else if (bestPredictions == "NO RMS VALUES FOUND") {
-                rf = 4
-            } else {
-                rf = 5
-            }
-            ///////////////////////////////
-        } else if (
-            loosenessRf > misalignmentRf &&
-            loosenessRf > anomalousVibrationRf
-        ) {
-            rf = 1
-        } else if (
-            misalignmentRf > loosenessRf &&
-            misalignmentRf > anomalousVibrationRf
-        ) {
-            rf = 2
-        } else if (
-            anomalousVibrationRf > loosenessRf &&
-            anomalousVibrationRf > misalignmentRf
-        ) {
-            rf = 3
-        } else {
-            rf = 0
-        }
-        ///////////RF
-
-        return { et, knn, rf, bp, start_time }
-    })
-    //////RESULT OVER HERE
-
-    const collectionUser1 = db.collection("instantaneous")
-    const unique_id = ["6d9083d0-3039-11ed-81ef-d732cfd46ac3"]
-    const query = { asset_id: h }
-    const inst = await collectionUser1.findOne(query)
-
-    console.log("checkout")
-    const collectionUser3 = db.collection("threshold")
-    const objectId = "64918764fedaff5916642880"
-    const query3 = { _id: new ObjectId(objectId) }
-    const thresholds3 = await collectionUser3.findOne(query3)
-
-    interface StartObject {
-        [assetId: string]: number // Change 'string' to the appropriate type of your 'start' value
-    }
-
-    const startObject: StartObject = {}
-
-    for (let i of values) {
-        const query = { asset_id: i }
-        const inst = await collectionUser1.findOne(query)
-
-        ///////////////
-
-        /////////////////////
-        const objectId = "64918764fedaff5916642880"
-        const query3 = { _id: new ObjectId(objectId) }
-        const thresholds3 = await collectionUser3.findOne(query3)
-        const caution = thresholds3[i].X_Axis_Velocity_Time_Waveform["caution"]
-        const warning = thresholds3[i].X_Axis_Velocity_Time_Waveform["warning"]
-
-        let status: number
-        if (
-            inst.data["x_rms_vel"] <
-            thresholds3[i].X_Axis_Velocity_Time_Waveform["caution"]
-        ) {
-            status = 0
-        } else if (
-            inst.data["x_rms_vel"] >
-                thresholds3[i].X_Axis_Velocity_Time_Waveform["caution"] &&
-            inst.data["x_rms_vel"] <
-                thresholds3[i].X_Axis_Velocity_Time_Waveform["warning"]
-        ) {
-            status = 1
-        } else {
-            status = 2
-        }
-        startObject[i] = status
-
-        //////////////
-    }
-
-    const latestDocumentsEt: Record<string, any> = {}
-
-    const latestDocumentsRf: Record<string, any> = {}
-
-    const latestDocumentsKnn: Record<string, any> = {}
-
-    const latestDocumentsBp: Record<string, any> = {}
-    function isObjectEmpty(obj: Record<string, any>): boolean {
-        return Object.keys(obj).length === 0
-    }
-    let s = 0
-    ///////for loop starting
-    for (const assetId of values) {
-        ++s
-        const documents = await collectionUser
+    if (realtime) {
+        console.log("realtime")
+        predictions2Cursor = predictions2Collection
             .find({ "Asset Id": assetId })
             .sort({ _id: -1 })
-            .limit(1)
-            .toArray()
-
-        const document = { ...documents[0] }
-        console.log(s)
-        console.log(document)
-        // if (isObjectEmpty(document)) {
-        //     console.log("empty document")
-        // }
-        console.log(s)
-
-        const anomalousVibrationEt = document["Anomalous Vibration_et"]
-        const anomalousVibrationKnn = document["Anomalous Vibration_knn"]
-        const anomalousVibrationRf = document["Anomalous Vibration_rf"]
-        const bestPredictions = document["Final State Predicted: "]
-        //"Final State Predicted: "
-        const misalignmentEt = document.Misalignment_et
-        const misalignmentKnn = document.Misalignment_knn
-        const misalignmentRf = document.Misalignment_rf
-        const loosenessEt = document.Looseness_et
-        const loosenessKnn = document.Looseness_knn
-        const loosenessRf = document.Looseness_rf
-
-        let bp = 0
-
-        if (bestPredictions == "HEALTHY") {
-            bp = 0
-        } else if (bestPredictions == "LOOSENESS FAULT DETECTED") {
-            bp = 1
-        } else if (bestPredictions == "MISCELLANEOUS VIBRATION DETECTED") {
-            bp = 2
-        } else if (bestPredictions == "ANOMALOUS VIBRATION DETECTED") {
-            bp = 3
-        } else if (bestPredictions == "NO RMS VALUES FOUND") {
-            bp = 4
-        } else {
-            bp = 5
-        }
-
-        let et = 0
-        let knn = 0
-        let rf = 0
-
-        if (!document) {
-            console.log("document is empty")
-        }
-
-        if (
-            loosenessEt == 0 &&
-            misalignmentEt == 0 &&
-            anomalousVibrationEt == 0
-        ) {
-            ////////////////////////////////
-            if (bestPredictions == "HEALTHY") {
-                et = 0
-            } else if (bestPredictions == "LOOSENESS FAULT DETECTED") {
-                et = 1
-            } else if (bestPredictions == "MISCELLANEOUS VIBRATION DETECTED") {
-                et = 2
-            } else if (bestPredictions == "ANOMALOUS VIBRATION DETECTED") {
-                et = 3
-            } else if (bestPredictions == "NO RMS VALUES FOUND") {
-                et = 4
-            } else {
-                et = 5
-            }
-            ///////////////////////////////
-        } else if (
-            loosenessEt > misalignmentEt &&
-            loosenessEt > anomalousVibrationEt
-        ) {
-            et = 1
-        } else if (
-            misalignmentEt > loosenessEt &&
-            misalignmentEt > anomalousVibrationEt
-        ) {
-            et = 2
-        } else if (
-            anomalousVibrationEt > loosenessEt &&
-            anomalousVibrationEt > misalignmentEt
-        ) {
-            et = 3
-        } else {
-            et = 0
-        }
-
-        /////////////////ET
-        if (
-            loosenessKnn == 0 &&
-            misalignmentKnn == 0 &&
-            anomalousVibrationKnn == 0
-        ) {
-            ////////////////////////////////
-            if (bestPredictions == "HEALTHY") {
-                knn = 0
-            } else if (bestPredictions == "LOOSENESS FAULT DETECTED") {
-                knn = 1
-            } else if (bestPredictions == "MISCELLANEOUS VIBRATION DETECTED") {
-                knn = 2
-            } else if (bestPredictions == "ANOMALOUS VIBRATION DETECTED") {
-                knn = 3
-            } else if (bestPredictions == "NO RMS VALUES FOUND") {
-                knn = 4
-            } else {
-                knn = 5
-            }
-            ///////////////////////////////
-        } else if (
-            loosenessKnn > misalignmentKnn &&
-            loosenessKnn > anomalousVibrationKnn
-        ) {
-            knn = 1
-        } else if (
-            misalignmentKnn > loosenessKnn &&
-            misalignmentKnn > anomalousVibrationKnn
-        ) {
-            knn = 2
-        } else if (
-            anomalousVibrationKnn > loosenessKnn &&
-            anomalousVibrationKnn > misalignmentKnn
-        ) {
-            knn = 3
-        } else {
-            knn = 0
-        }
-
-        ////////////////////////KNN
-        if (
-            loosenessRf == 0 &&
-            misalignmentRf == 0 &&
-            anomalousVibrationRf == 0
-        ) {
-            ////////////////////////////////
-            if (bestPredictions == "HEALTHY") {
-                rf = 0
-            } else if (bestPredictions == "LOOSENESS FAULT DETECTED") {
-                rf = 1
-            } else if (bestPredictions == "MISCELLANEOUS VIBRATION DETECTED") {
-                rf = 2
-            } else if (bestPredictions == "ANOMALOUS VIBRATION DETECTED") {
-                rf = 3
-            } else if (bestPredictions == "NO RMS VALUES FOUND") {
-                rf = 4
-            } else {
-                rf = 5
-            }
-            ///////////////////////////////
-        } else if (
-            loosenessRf > misalignmentRf &&
-            loosenessRf > anomalousVibrationRf
-        ) {
-            rf = 1
-        } else if (
-            misalignmentRf > loosenessRf &&
-            misalignmentRf > anomalousVibrationRf
-        ) {
-            rf = 2
-        } else if (
-            anomalousVibrationRf > loosenessRf &&
-            anomalousVibrationRf > misalignmentRf
-        ) {
-            rf = 3
-        } else {
-            rf = 0
-        }
-
-        if (isObjectEmpty(document)) {
-            console.log("document is empty")
-            bp = 5
-            et = 5
-            rf = 5
-            knn = 5
-        }
-
-        latestDocumentsEt[assetId] = et
-
-        latestDocumentsKnn[assetId] = knn
-        latestDocumentsRf[assetId] = rf
-        latestDocumentsBp[assetId] = bp
-
-        // if (latestDocument.length > 0) {
-        //     latestDocuments[assetId] = latestDocument[0]
-        // }
+            .limit(10)
+    } else {
+        console.log("not realtime")
+        predictions2Cursor = predictions2Collection.find({
+            "Asset Id": assetId,
+            "Start Time of the document": {
+                $gte: startTime,
+                $lte: endTime,
+            },
+        })
     }
 
-    const resultArray = []
+    const thresholds: Document[] = await predictions2Cursor.toArray()
 
-    resultArray.push({
-        result,
-        startObject,
-        latestDocumentsEt,
-        latestDocumentsRf,
-        latestDocumentsKnn,
-        latestDocumentsBp,
-        h,
+    // Looping through all the documents
+    const returnData = thresholds.map((threshold) => {
+        const finalStatePredicted = threshold["Final State Predicted: "]
+
+        console.log({ finalStatePredicted })
+
+        // @ts-ignore
+        const bp = METRIC_INFO[finalStatePredicted?.toLowerCase()]
+
+        // Start time
+        const start_time = threshold["Start Time of the document"]
+
+        // Extra trees
+        const a_v_et = threshold["Anomalous Vibration_et"]
+        const m_et = threshold["Misalignment_et"]
+        const l_et = threshold["Looseness_et"]
+
+        let et
+
+        if (
+            finalStatePredicted?.toLowerCase() === "healthy" ||
+            finalStatePredicted?.toLowerCase() === "no data found" ||
+            finalStatePredicted?.toLowerCase() === "no rms values found"
+        ) {
+            // @ts-ignore
+            et = METRIC_INFO[finalStatePredicted?.toLowerCase()]
+        } else if (a_v_et > m_et && a_v_et > l_et) {
+            // Anomalous Vibration is the maximum
+            // Perform operations for Anomalous Vibration
+
+            et = METRIC_INFO_PARSED.anomalous
+        } else if (m_et > a_v_et && m_et > l_et) {
+            // Misalignment is the maximum
+            // Perform operations for Misalignment
+
+            et = METRIC_INFO_PARSED.misalignment
+        } else if (l_et > a_v_et && l_et > m_et) {
+            // Looseness is the maximum
+            // Perform operations for Looseness
+
+            et = METRIC_INFO_PARSED.looseness
+        } else {
+            et = METRIC_INFO_PARSED.healthy
+            // Two or more variables are equal (or all are equal)
+            // You can handle this case as needed
+        }
+
+        // K nearest neighbour
+        const a_v_knn = threshold["Anomalous Vibration_knn"]
+        const m_knn = threshold["Misalignment_knn"]
+        const l_knn = threshold["Looseness_knn"]
+
+        let knn
+
+        if (
+            finalStatePredicted?.toLowerCase() === "healthy" ||
+            finalStatePredicted?.toLowerCase() === "no data found" ||
+            finalStatePredicted?.toLowerCase() === "no rms values found"
+        ) {
+            // @ts-ignore
+            knn = METRIC_INFO[finalStatePredicted?.toLowerCase()]
+        } else if (a_v_knn > m_knn && a_v_knn > l_knn) {
+            // Anomalous Vibration is the maximum
+            // Perform operations for Anomalous Vibration
+
+            knn = METRIC_INFO_PARSED.anomalous
+        } else if (m_knn > a_v_knn && m_knn > l_knn) {
+            // Misalignment is the maximum
+            // Perform operations for Misalignment
+
+            knn = METRIC_INFO_PARSED.misalignment
+        } else if (l_knn > a_v_knn && l_knn > m_knn) {
+            // Looseness is the maximum
+            // Perform operations for Looseness
+
+            knn = METRIC_INFO_PARSED.looseness
+        } else {
+            knn = METRIC_INFO_PARSED.healthy
+            // Two or more variables are equal (or all are equal)
+            // You can handle this case as needed
+        }
+
+        // Random forest
+        const a_v_rf = threshold["Anomalous Vibration_rf"]
+        const m_rf = threshold["Misalignment_rf"]
+        const l_rf = threshold["Looseness_rf"]
+
+        let rf
+
+        if (
+            finalStatePredicted?.toLowerCase() === "healthy" ||
+            finalStatePredicted?.toLowerCase() === "no data found" ||
+            finalStatePredicted?.toLowerCase() === "no rms values found"
+        ) {
+            // @ts-ignore
+            rf = METRIC_INFO[finalStatePredicted?.toLowerCase()]
+        } else if (a_v_rf > m_rf && a_v_rf > l_rf) {
+            // Anomalous Vibration is the maximum
+            // Perform operations for Anomalous Vibration
+
+            rf = METRIC_INFO_PARSED.anomalous
+        } else if (m_rf > a_v_rf && m_rf > l_rf) {
+            // Misalignment is the maximum
+            // Perform operations for Misalignment
+
+            rf = METRIC_INFO_PARSED.misalignment
+        } else if (l_rf > a_v_rf && l_rf > m_rf) {
+            // Looseness is the maximum
+            // Perform operations for Looseness
+
+            rf = METRIC_INFO_PARSED.looseness
+        } else {
+            rf = METRIC_INFO_PARSED.healthy
+            // Two or more variables are equal (or all are equal)
+            // You can handle this case as needed
+        }
+
+        return {
+            bp,
+            start_time,
+            et,
+            knn,
+            rf,
+        }
     })
-    res.send(resultArray)
 
-    /////
+    console.log({ returnData })
+
+    res.send(realtime ? returnData?.reverse() : returnData)
+}
+
+export const getLatestMetrics = async (req: Request, res: Response) => {
+    await client.connect()
+
+    // Getting predictions 2 data
+    const db = client.db("BSP")
+
+    const predictions2Collection = db.collection("predictions_2")
+
+    let thresholds = []
+
+    for (let i = 0; i < devices.length; i++) {
+        const { asset_id } = devices[i]
+
+        const prediction2Cursor = predictions2Collection
+            .find({
+                "Asset Id": asset_id,
+            })
+            .sort({ _id: -1 })
+            .limit(1)
+
+        const threshold: Document[] = await prediction2Cursor.toArray()
+
+        thresholds.push(threshold[0])
+    }
+
+    let returnData = {}
+
+    // Looping through all the documents
+    for (let i = 0; i < thresholds.length; i++) {
+        const threshold = thresholds[i]
+
+        const finalStatePredicted = threshold["Final State Predicted: "]
+
+        // @ts-ignore
+        const bp = METRIC_INFO[finalStatePredicted?.toLowerCase()]
+
+        // Extra trees
+        const a_v_et = threshold["Anomalous Vibration_et"]
+        const m_et = threshold["Misalignment_et"]
+        const l_et = threshold["Looseness_et"]
+
+        let et
+
+        if (
+            finalStatePredicted?.toLowerCase() === "healthy" ||
+            finalStatePredicted?.toLowerCase() === "no data found" ||
+            finalStatePredicted?.toLowerCase() === "no rms values found"
+        ) {
+            // @ts-ignore
+            et = METRIC_INFO[finalStatePredicted?.toLowerCase()]
+        } else if (a_v_et > m_et && a_v_et > l_et) {
+            // Anomalous Vibration is the maximum
+            // Perform operations for Anomalous Vibration
+
+            et = METRIC_INFO_PARSED.anomalous
+        } else if (m_et > a_v_et && m_et > l_et) {
+            // Misalignment is the maximum
+            // Perform operations for Misalignment
+
+            et = METRIC_INFO_PARSED.misalignment
+        } else if (l_et > a_v_et && l_et > m_et) {
+            // Looseness is the maximum
+            // Perform operations for Looseness
+
+            et = METRIC_INFO_PARSED.looseness
+        } else {
+            et = METRIC_INFO_PARSED.healthy
+            // Two or more variables are equal (or all are equal)
+            // You can handle this case as needed
+        }
+
+        // K nearest neighbour
+        const a_v_knn = threshold["Anomalous Vibration_knn"]
+        const m_knn = threshold["Misalignment_knn"]
+        const l_knn = threshold["Looseness_knn"]
+
+        let knn
+
+        if (
+            finalStatePredicted?.toLowerCase() === "healthy" ||
+            finalStatePredicted?.toLowerCase() === "no data found" ||
+            finalStatePredicted?.toLowerCase() === "no rms values found"
+        ) {
+            // @ts-ignore
+            knn = METRIC_INFO[finalStatePredicted?.toLowerCase()]
+        } else if (a_v_knn > m_knn && a_v_knn > l_knn) {
+            // Anomalous Vibration is the maximum
+            // Perform operations for Anomalous Vibration
+
+            knn = METRIC_INFO_PARSED.anomalous
+        } else if (m_knn > a_v_knn && m_knn > l_knn) {
+            // Misalignment is the maximum
+            // Perform operations for Misalignment
+
+            knn = METRIC_INFO_PARSED.misalignment
+        } else if (l_knn > a_v_knn && l_knn > m_knn) {
+            // Looseness is the maximum
+            // Perform operations for Looseness
+
+            knn = METRIC_INFO_PARSED.looseness
+        } else {
+            knn = METRIC_INFO_PARSED.healthy
+            // Two or more variables are equal (or all are equal)
+            // You can handle this case as needed
+        }
+
+        // Random forest
+        const a_v_rf = threshold["Anomalous Vibration_rf"]
+        const m_rf = threshold["Misalignment_rf"]
+        const l_rf = threshold["Looseness_rf"]
+
+        let rf
+
+        if (
+            finalStatePredicted?.toLowerCase() === "healthy" ||
+            finalStatePredicted?.toLowerCase() === "no data found" ||
+            finalStatePredicted?.toLowerCase() === "no rms values found"
+        ) {
+            // @ts-ignore
+            rf = METRIC_INFO[finalStatePredicted?.toLowerCase()]
+        } else if (a_v_rf > m_rf && a_v_rf > l_rf) {
+            // Anomalous Vibration is the maximum
+            // Perform operations for Anomalous Vibration
+
+            rf = METRIC_INFO_PARSED.anomalous
+        } else if (m_rf > a_v_rf && m_rf > l_rf) {
+            // Misalignment is the maximum
+            // Perform operations for Misalignment
+
+            rf = METRIC_INFO_PARSED.misalignment
+        } else if (l_rf > a_v_rf && l_rf > m_rf) {
+            // Looseness is the maximum
+            // Perform operations for Looseness
+
+            rf = METRIC_INFO_PARSED.looseness
+        } else {
+            rf = METRIC_INFO_PARSED.healthy
+            // Two or more variables are equal (or all are equal)
+            // You can handle this case as needed
+        }
+
+        const assetId = threshold["Asset Id"]
+
+        returnData = {
+            ...returnData,
+            [assetId]: {
+                bp,
+                et,
+                knn,
+                rf,
+            },
+        }
+    }
+
+    res.send(returnData)
 }
 
 export async function getFiltMetrics(req: Request, res: Response) {
@@ -916,8 +781,6 @@ export async function getFiltMetrics(req: Request, res: Response) {
     }
 
     const thresholds = await collectionUser.find(query).toArray()
-
-    console.log({ thresholds })
 
     const result = thresholds.map((document: Document) => {
         const anomalousVibrationEt = document["Anomalous Vibration_et"]

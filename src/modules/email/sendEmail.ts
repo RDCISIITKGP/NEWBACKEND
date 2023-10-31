@@ -21,7 +21,7 @@ const sendEmail = async () => {
         from: "eyevibmail@gmail.com",
         to: admins.join(", "),
         subject: `EveVib Predictions : ${currentTime}`,
-        text: "Hello Admin,\n\nAttached is your daily summary report.\n\nSummary Information:\n0: Healthy\n1: Looseness\n2: Misalignment\n3: Anomalous Vibration\n4: No RMS Values Found\n5: No Data Found\n\nPlease note that these numbers correspond to the status of the reported data.\n\nIf you have any further queries or need additional information, please feel free to contact us at eyevibmail@gmail.com.\n\nWarm Regards,\nEYEVIB",
+        text: "Hello Admin,\n\nAttached is your daily summary report.\n\nSummary Information:\n0: Healthy\n1: Looseness\n2: Misalignment\n3: Anomalous Vibration\n4: No RMS Values Found\n5: No Data Found\n\nPlease note that these numbers correspond to the status of the reported data.\n\nIf you have any further queries or need additional information, please feel free to contact us at eyevibmail@gmail.com.\n\nWarm Regards,\nEyeVib",
         attachments: [
             {
                 filename: `predictions ${currentTime}.xlsx`,
