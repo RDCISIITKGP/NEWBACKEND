@@ -20,7 +20,7 @@ const insertSummary = async () => {
     await client.connect()
     const db = client.db("BSP")
 
-    const collectionUser = db.collection("rmsHistory2")
+    const collectionUser = db.collection("rmsHistory3")
     const collectionThresh = db.collection("threshold")
     const collectionSummary = db.collection("summary")
     const currentDate = new Date()
@@ -50,9 +50,32 @@ const insertSummary = async () => {
         const thresholds_value = collectionUser.find({
             asset_id: id,
         })
-        const all = await thresholds_value.toArray()
 
-        const filteredIndexes: number[] = all[0].time_up
+        // merge the values of thresholds
+        let all = {
+            asset_id: id,
+            y_rms_vel: [] as number[],
+            y_rms_acl: [] as number[],
+            x_rms_vel: [] as number[],
+            z_rms_vel: [] as number[],
+            x_rms_acl: [] as number[],
+            z_rms_acl: [] as number[],
+            time_up: [] as string[],
+        }
+
+        const thresholdsArray = await thresholds_value.toArray()
+
+        thresholdsArray.forEach((item: any) => {
+            all.y_rms_vel.push(...item.y_rms_acl)
+            all.y_rms_acl.push(...item.y_rms_acl)
+            all.x_rms_vel.push(...item.x_rms_vel)
+            all.z_rms_vel.push(...item.z_rms_vel)
+            all.x_rms_acl.push(...item.x_rms_acl)
+            all.z_rms_acl.push(...item.z_rms_acl)
+            all.time_up.push(...item.time_up)
+        })
+
+        const filteredIndexes: number[] = all.time_up
             .map((dateTimeString: string, index: number) => {
                 const currentDate: Date = new Date(dateTimeString)
                 const timeMin: Date = new Date(yesterdayMidnightIST)
@@ -72,7 +95,7 @@ const insertSummary = async () => {
             i < filteredIndexes[filteredIndexes.length - 1];
             i++
         ) {
-            x_rms_vell.push(all[0].x_rms_vel[i])
+            x_rms_vell.push(all.x_rms_vel[i])
         }
 
         const y_rms_vell = []
@@ -82,7 +105,7 @@ const insertSummary = async () => {
             i < filteredIndexes[filteredIndexes.length - 1];
             i++
         ) {
-            y_rms_vell.push(all[0].y_rms_vel[i])
+            y_rms_vell.push(all.y_rms_vel[i])
         }
 
         const z_rms_vell = []
@@ -92,12 +115,12 @@ const insertSummary = async () => {
             i < filteredIndexes[filteredIndexes.length - 1];
             i++
         ) {
-            z_rms_vell.push(all[0].z_rms_vel[i])
+            z_rms_vell.push(all.z_rms_vel[i])
         }
 
         const x_rms_caution = x_rms_vell.filter(
             (value) =>
-                parseInt(value) >
+                parseInt(String(value)) >
                 (!!thresholds
                     ? thresholds[id].X_Axis_Velocity_Time_Waveform["caution"]
                     : undefined)
@@ -105,7 +128,7 @@ const insertSummary = async () => {
 
         const y_rms_caution = y_rms_vell.filter(
             (value) =>
-                parseInt(value) >
+                parseInt(String(value)) >
                 (!!thresholds
                     ? thresholds[id].Y_Axis_Velocity_Time_Waveform["caution"]
                     : undefined)
@@ -113,7 +136,7 @@ const insertSummary = async () => {
 
         const z_rms_caution = z_rms_vell.filter(
             (value) =>
-                parseInt(value) >
+                parseInt(String(value)) >
                 (!!thresholds
                     ? thresholds[id].Z_Axis_Velocity_Time_Waveform["caution"]
                     : undefined)
@@ -122,7 +145,7 @@ const insertSummary = async () => {
         //WARNING
         const x_rms_warning = x_rms_vell.filter(
             (value) =>
-                parseInt(value) >
+                parseInt(String(value)) >
                 (!!thresholds
                     ? thresholds[id].X_Axis_Velocity_Time_Waveform["warning"]
                     : undefined)
@@ -130,7 +153,7 @@ const insertSummary = async () => {
 
         const y_rms_warning = y_rms_vell.filter(
             (value) =>
-                parseInt(value) >
+                parseInt(String(value)) >
                 (!!thresholds
                     ? thresholds[id].Y_Axis_Velocity_Time_Waveform["warning"]
                     : undefined)
@@ -138,7 +161,7 @@ const insertSummary = async () => {
 
         const z_rms_warning = z_rms_vell.filter(
             (value) =>
-                parseInt(value) >
+                parseInt(String(value)) >
                 (!!thresholds
                     ? thresholds[id].X_Axis_Velocity_Time_Waveform["warning"]
                     : undefined)

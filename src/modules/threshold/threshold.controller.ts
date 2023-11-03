@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb"
 import { Document } from "mongodb"
 import bcrypt from "bcryptjs"
 import { METRIC_INFO, METRIC_INFO_PARSED, devices } from "../../constants"
+import getLastDateOfMonth from "../../utils/getLastDateOfMonth"
 
 const { MongoClient, ServerApiVersion } = require("mongodb")
 const uri = "mongodb://nasim:nasim%40msf@103.154.184.52:27017"
@@ -25,120 +26,120 @@ export async function getFilteredData(req: Request, res: Response) {
 
     const db = client.db("BSP")
 
-    const collectionUser = db.collection("rmsHistory2")
+    const rmsHistory4Col = db.collection("rmsHistory3")
 
-    const thresholdsCursor = await collectionUser.find({ asset_id })
-
-    const thresholds = await thresholdsCursor.toArray()
-
-    const {
-        time_up,
-        x_rms_acl,
-        x_rms_vel,
-        y_rms_acl,
-        y_rms_vel,
-        z_rms_acl,
-        z_rms_vel,
-    } = thresholds[0]
-
-    // formatting start time
-    let datePart = startTime?.split("+")[0]
-
-    let formattedDateString: string = `${datePart}Z`
-
-    // You can also create a specific date and time
-    let specificDate: Date = new Date(formattedDateString)
-
-    // You can convert the date to a string to store it in MongoDB
-    const formattedStartTime: Date = new Date(specificDate.toISOString())
-
-    console.log({ formattedDateString })
-
-    // Formatting endTime
-    const [datePart1, _1] = endTime?.split("+")
-
-    formattedDateString = `${datePart1}Z`
-
-    specificDate = new Date(formattedDateString)
-
-    const formattedEndTime: Date = new Date(specificDate.toISOString())
-
-    // Filtering through date
-    const filteredTimes: string[] = thresholds[0].time_up.filter(
-        (date: string) => {
-            const currentDate: Date = new Date(date)
-
-            return (
-                currentDate >= formattedStartTime &&
-                currentDate <= formattedEndTime
-            )
-        }
-    )
-
-    const times: string[] = filteredTimes.map((date: string) => {
-        const dateObj: Date = new Date(date)
-
-        const formattedDateTime: string = dateObj
-            .toISOString()
-            .replace("T", " ")
-            .slice(0, -1)
-        return formattedDateTime
+    const lastDate = getLastDateOfMonth({
+        date: new Date(endTime),
     })
 
-    console.log({
-        filteredTimes,
-        times,
-        time_up,
-        formattedStartTime,
-        formattedEndTime,
+    const thresholdsCursor = await rmsHistory4Col.find({
+        asset_id,
+        time: {
+            $gte: new Date(startTime),
+            $lte: lastDate,
+        },
     })
 
-    const one: any = filteredTimes[0]
-    const two: any = filteredTimes[filteredTimes.length - 1]
+    // merge the values of thresholds
+    let thresholds = {
+        asset_id: asset_id,
+        y_rms_vel: [] as number[],
+        y_rms_acl: [] as number[],
+        x_rms_vel: [] as number[],
+        z_rms_vel: [] as number[],
+        x_rms_acl: [] as number[],
+        z_rms_acl: [] as number[],
+        time_up: [] as string[],
+    }
 
-    console.log({ timeUp: thresholds[0].time_up, one, two })
+    const all = await thresholdsCursor.toArray()
 
-    const startIndex: number = thresholds[0].time_up.findIndex(
-        (date: string) => date === one
-    )
+    if (all.length > 0) {
+        console.log({ all, length: all[0]?.y_rms_vel?.length })
+    }
 
-    const endIndex: number = thresholds[0].time_up.findIndex(
-        (date: string) => date === two
-    )
+    all.forEach((item: any) => {
+        thresholds.y_rms_vel.push(...item.y_rms_acl)
+        thresholds.y_rms_acl.push(...item.y_rms_acl)
+        thresholds.x_rms_vel.push(...item.x_rms_vel)
+        thresholds.z_rms_vel.push(...item.z_rms_vel)
+        thresholds.x_rms_acl.push(...item.x_rms_acl)
+        thresholds.z_rms_acl.push(...item.z_rms_acl)
+        thresholds.time_up.push(...item.time_up)
+    })
 
-    console.log({ startIndex, endIndex })
+    const x_rms_acl = thresholds.x_rms_acl.filter((_, index) => {
+        const time = new Date(thresholds.time_up[index])
 
-    // Formatting return data
-    const x_rms_acll: any[] = [
-        ...thresholds[0].x_rms_acl.slice(startIndex, endIndex + 1),
-    ]
-    const y_rms_acll: any[] = [
-        ...thresholds[0].y_rms_acl.slice(startIndex, endIndex + 1),
-    ]
-    const z_rms_acll: any[] = [
-        ...thresholds[0].z_rms_acl.slice(startIndex, endIndex + 1),
-    ]
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
 
-    const x_rms_vell: any[] = [
-        ...thresholds[0].x_rms_vel.slice(startIndex, endIndex + 1),
-    ]
+        return time >= startDate && time <= endDate
+    })
 
-    const y_rms_vell: any[] = [
-        ...thresholds[0].y_rms_vel.slice(startIndex, endIndex + 1),
-    ]
-    const z_rms_vell: any[] = [
-        ...thresholds[0].z_rms_vel.slice(startIndex, endIndex + 1),
-    ]
+    const y_rms_acl = thresholds.y_rms_acl.filter((_, index) => {
+        const time = new Date(thresholds.time_up[index])
+
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
+
+        return time >= startDate && time <= endDate
+    })
+
+    const z_rms_acl = thresholds.z_rms_acl.filter((_, index) => {
+        const time = new Date(thresholds.time_up[index])
+
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
+
+        return time >= startDate && time <= endDate
+    })
+
+    const x_rms_vel = thresholds.x_rms_vel.filter((_, index) => {
+        const time = new Date(thresholds.time_up[index])
+
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
+
+        return time >= startDate && time <= endDate
+    })
+
+    const y_rms_vel = thresholds.y_rms_vel.filter((_, index) => {
+        const time = new Date(thresholds.time_up[index])
+
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
+
+        return time >= startDate && time <= endDate
+    })
+
+    const z_rms_vel = thresholds.z_rms_vel.filter((_, index) => {
+        const time = new Date(thresholds.time_up[index])
+
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
+
+        return time >= startDate && time <= endDate
+    })
+
+    const timeup = thresholds.time_up.filter((value) => {
+        const time = new Date(value)
+
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
+
+        return time >= startDate && time <= endDate
+    })
 
     const allSet = [
         {
-            x_rms_acl: x_rms_acll,
-            y_rms_acl: y_rms_acll,
-            z_rms_acl: z_rms_acll,
-            x_rms_vel: x_rms_vell,
-            y_rms_vel: y_rms_vell,
-            z_rms_vel: z_rms_vell,
-            timeup: times,
+            x_rms_acl,
+            y_rms_acl,
+            z_rms_acl,
+            x_rms_vel,
+            y_rms_vel,
+            z_rms_vel,
+            timeup,
         },
     ]
 
@@ -167,8 +168,6 @@ export async function getFilteredDataFFT(req: Request, res: Response) {
     }
     const new_start_time = [...start_time.reverse()]
 
-    ///////////////////////////FFT X ACC
-
     const allSet = [
         {
             results: result,
@@ -176,27 +175,39 @@ export async function getFilteredDataFFT(req: Request, res: Response) {
         },
     ]
 
-    /////////////////////////////////////// testedsubject
-    ////////////////////////////////////////
-
-    ////////////////////////////////////////
-    ///////////////////////////////////////////
-
     res.json(allSet)
 }
 
-////////////////////////////////////////////////
-//////////////////////////////////////////
-////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////\
 export async function getUpdatedData(req: Request, res: Response) {
     const h = req.body.title
 
     await client.connect()
     const db = client.db("BSP")
-    const collectionUser = db.collection("rmsHistory2")
+    const collectionUser = db.collection("rmsHistory3")
     const thresholds = await collectionUser.find({ asset_id: h })
-    const all = await thresholds.toArray()
+
+    let all = {
+        asset_id: h,
+        y_rms_vel: [] as number[],
+        y_rms_acl: [] as number[],
+        x_rms_vel: [] as number[],
+        z_rms_vel: [] as number[],
+        x_rms_acl: [] as number[],
+        z_rms_acl: [] as number[],
+        time_up: [] as string[],
+    }
+    const thresholdsArray = await thresholds.toArray()
+
+    thresholdsArray.forEach((item: any) => {
+        thresholds.y_rms_vel.push(...item.y_rms_acl)
+        thresholds.y_rms_acl.push(...item.y_rms_acl)
+        thresholds.x_rms_vel.push(...item.x_rms_vel)
+        thresholds.z_rms_vel.push(...item.z_rms_vel)
+        thresholds.x_rms_acl.push(...item.x_rms_acl)
+        thresholds.z_rms_acl.push(...item.z_rms_acl)
+        thresholds.time_up.push(...item.time_up)
+    })
+
     // all[0].x_rms_acl.splice(0, all[0].x_rms_acl.length - 300)
     // all[0].y_rms_acl.splice(0, all[0].y_rms_acl.length - 300)
     // all[0].z_rms_acl.splice(0, all[0].z_rms_acl.length - 300)
@@ -204,13 +215,11 @@ export async function getUpdatedData(req: Request, res: Response) {
     // console.log(all[0].x_rms_acl)
     // console.log("checkpoimt")
     // console.log(all)
-    const x_rms_acll = [...all[0].x_rms_acl.slice(-1)]
-    const y_rms_acll = [...all[0].y_rms_acl.slice(-1)]
-    const z_rms_acll = [...all[0].z_rms_acl.slice(-1)]
-    const timeUps = [...all[0].time_up.slice(-1)]
-    console.log("checkout this")
+    const x_rms_acll = [...all.x_rms_acl.slice(-1)]
+    const y_rms_acll = [...all.y_rms_acl.slice(-1)]
+    const z_rms_acll = [...all.z_rms_acl.slice(-1)]
+    const timeUps = [...all.time_up.slice(-1)]
 
-    console.log("checkout this")
     const timeUp = timeUps.map((dateTimeString) => {
         const dateObj = new Date(dateTimeString)
         const year = dateObj.getUTCFullYear()
@@ -246,32 +255,46 @@ export async function getRMSData(
     console.log({ asset_id })
     await client.connect()
     const db = client.db("BSP")
-    const collectionUser = db.collection("rmsHistory2")
-    const thresholds = await collectionUser.find({ asset_id })
-    const all = await thresholds.toArray()
+    const collectionUser = db.collection("rmsHistory3")
 
-    const {
-        time_up,
-        x_rms_acl,
-        x_rms_vel,
-        y_rms_acl,
-        y_rms_vel,
-        z_rms_acl,
-        z_rms_vel,
-    } = all
+    const currentYear = new Date().getFullYear()
 
-    console.log({
-        time_up,
-        x_rms_acl,
-        x_rms_vel,
-        y_rms_acl,
-        y_rms_vel,
-        z_rms_acl,
-        z_rms_vel,
-        all,
+    const yearStart = new Date(currentYear, 0, 1, 0, 0, 0, 0)
+
+    const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999)
+
+    // see if the 'year' of createdAt matches with the current year
+    const thresholds = await collectionUser.find({
+        asset_id,
+        time: {
+            $gte: yearStart,
+            $lte: yearEnd,
+        },
     })
 
-    console.log({})
+    // merge the values of thresholds
+    let combinedthredholds = {
+        asset_id: asset_id,
+        y_rms_vel: [] as number[],
+        y_rms_acl: [] as number[],
+        x_rms_vel: [] as number[],
+        z_rms_vel: [] as number[],
+        x_rms_acl: [] as number[],
+        z_rms_acl: [] as number[],
+        time_up: [] as string[],
+    }
+
+    const all = await thresholds.toArray()
+
+    all.forEach((item: any) => {
+        combinedthredholds.y_rms_vel.push(...item.y_rms_acl)
+        combinedthredholds.y_rms_acl.push(...item.y_rms_acl)
+        combinedthredholds.x_rms_vel.push(...item.x_rms_vel)
+        combinedthredholds.z_rms_vel.push(...item.z_rms_vel)
+        combinedthredholds.x_rms_acl.push(...item.x_rms_acl)
+        combinedthredholds.z_rms_acl.push(...item.z_rms_acl)
+        combinedthredholds.time_up.push(...item.time_up)
+    })
 
     const collection = db.collection("analytics")
     const collectionSummary = db.collection("summary")
@@ -315,7 +338,6 @@ export async function getRMSData(
 
     const new_start_time = [...start_time.reverse()]
 
-    ///////////////////////////FFT X ACC
     const data1 = [...result[0].data["X-Axis Acceleration FFT"]]
     const dataString1 = data1.join("") // Join array elements into a single string
     const parsedData1 = JSON.parse(dataString1)
@@ -353,14 +375,14 @@ export async function getRMSData(
     // console.log(all[0].x_rms_acl)
     // console.log("checkpoimt")
     // console.log(all)
-    const x_rms_acll = [...all[0].x_rms_acl.splice(-300)]
-    const y_rms_acll = [...all[0].y_rms_acl.splice(-300)]
-    const z_rms_acll = [...all[0].z_rms_acl.splice(-300)]
-    const x_rms_vell = [...all[0].x_rms_vel.splice(-300)]
-    const y_rms_vell = [...all[0].y_rms_vel.splice(-300)]
-    const z_rms_vell = [...all[0].z_rms_vel.splice(-300)]
+    const x_rms_acll = [...combinedthredholds.x_rms_acl.splice(-300)]
+    const y_rms_acll = [...combinedthredholds.y_rms_acl.splice(-300)]
+    const z_rms_acll = [...combinedthredholds.z_rms_acl.splice(-300)]
+    const x_rms_vell = [...combinedthredholds.x_rms_vel.splice(-300)]
+    const y_rms_vell = [...combinedthredholds.y_rms_vel.splice(-300)]
+    const z_rms_vell = [...combinedthredholds.z_rms_vel.splice(-300)]
 
-    const timeUp = [...all[0].time_up.splice(-300)]
+    const timeUp = [...combinedthredholds.time_up.splice(-300)]
     const times = timeUp.map((dateTimeString) => {
         const dateObj = new Date(dateTimeString)
         const year = dateObj.getUTCFullYear()
@@ -398,15 +420,8 @@ export async function getRMSData(
         },
     ]
 
-    /////////////////////////////////////// testedsubject
-    ////////////////////////////////////////
-
-    ////////////////////////////////////////
-    ///////////////////////////////////////////
-
     res.json(allSet)
 }
-//////////////////////////////////////
 
 export async function getThresholds(req: Request, res: Response) {
     await client.connect()
