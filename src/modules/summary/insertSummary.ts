@@ -27,7 +27,7 @@ const insertSummary = async () => {
     const dateString = currentDate.toISOString().substring(0, 10)
 
     const getTodayIST = (): string =>
-        moment.tz("Asia/Kolkata").format(`YYYY-MM-DDT00:00:00.000[Z]`)
+        moment.tz("Asia/Kolkata").format(`YYYY-MM-DDTHH:mm:ss.000[Z]`)
 
     const getYesterdayMidnightIST = (): string =>
         moment
@@ -77,7 +77,7 @@ const insertSummary = async () => {
 
         const filteredIndexes: number[] = all.time_up
             .map((dateTimeString: string, index: number) => {
-                const currentDate: Date = new Date(dateTimeString)
+                const currentDate: Date = new Date(String(dateTimeString))
                 const timeMin: Date = new Date(yesterdayMidnightIST)
                 const timeMax: Date = new Date(todayIST)
 
