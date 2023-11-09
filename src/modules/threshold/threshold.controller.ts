@@ -19,6 +19,7 @@ const client = new MongoClient(uri, {
     },
 })
 
+// Getting the filtered rms data (by selected time)
 export async function getFilteredData(req: Request, res: Response) {
     const { title: asset_id, startDate: startTime, endDate: endTime } = req.body
 
@@ -146,6 +147,7 @@ export async function getFilteredData(req: Request, res: Response) {
     res.json(allSet)
 }
 
+// getting the filtered FFT data (by selected time)
 export async function getFilteredDataFFT(req: Request, res: Response) {
     const h = req.body.title
 
@@ -246,6 +248,7 @@ export async function getUpdatedData(req: Request, res: Response) {
     res.json(allSet)
 }
 
+// getting the rms data (time waveform, summary)
 export async function getRMSData(
     req: Request<{}, {}, {}, { asset_id: string }>,
     res: Response
@@ -423,6 +426,7 @@ export async function getRMSData(
     res.json(allSet)
 }
 
+// getting the selected thresholds (set by the user)
 export async function getThresholds(req: Request, res: Response) {
     await client.connect()
     const db = client.db("BSP")
@@ -463,6 +467,7 @@ export async function getSavedData(req: Request, res: Response) {
     res.json(thresholds)
 }
 
+// getting the realtime metrics data
 export const getMetrics = async (
     req: Request<
         {},
@@ -642,6 +647,7 @@ export const getMetrics = async (
     res.send(realtime ? returnData?.reverse() : returnData)
 }
 
+// getting the latest metrics data for all the assets
 export const getLatestMetrics = async (req: Request, res: Response) => {
     await client.connect()
 
@@ -799,6 +805,7 @@ export const getLatestMetrics = async (req: Request, res: Response) => {
     res.send(returnData)
 }
 
+// getting the filtered metrics data (realtime)
 export async function getFiltMetrics(req: Request, res: Response) {
     const h = req.body.title
 
@@ -1005,6 +1012,7 @@ export async function getFiltMetrics(req: Request, res: Response) {
     res.send(result)
 }
 
+// getting the list of all the users
 export async function getUsers(req: Request, res: Response) {
     await client.connect()
     const db = client.db("BSP")
@@ -1016,6 +1024,7 @@ export async function getUsers(req: Request, res: Response) {
     res.send(users)
 }
 
+// function to register a new user
 export async function register(req: Request, res: Response) {
     await client.connect()
     const db = client.db("BSP")

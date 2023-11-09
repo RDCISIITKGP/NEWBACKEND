@@ -11,7 +11,9 @@ import { ObjectId } from "mongodb"
 dotenv.config()
 
 const { MongoClient, ServerApiVersion } = require("mongodb")
+
 const uri = "mongodb://nasim:nasim%40msf@103.154.184.52:27017"
+
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
     serverApi: {
@@ -26,6 +28,8 @@ const client = new MongoClient(uri, {
  @route   POST /api/users
  @access  Public
 */
+
+// function to register a new user
 const registerUser = asyncHandler(
     async (req: Request<{}, {}, RegisterUserBody>, res) => {
         console.log("YEH I GOT YOU, I LOVE YOU")
@@ -86,6 +90,8 @@ const registerUser = asyncHandler(
  @route   POST /api/users/login
  @access  Public
 */
+
+// function to login a registered user
 const loginUser = asyncHandler(
     async (req: Request<{}, {}, LoginUserBody>, res) => {
         console.log("YEH I GOT YOU , LOVE YOU LOGIN")
@@ -126,6 +132,8 @@ const loginUser = asyncHandler(
 @route GET /api/users/me
 @access Private
 */
+
+// getting the information of a logged in user
 const getMe = asyncHandler(async (req, res) => {
     // @ts-ignore
     res.status(200).json(req.user)
@@ -136,6 +144,7 @@ const getMe = asyncHandler(async (req, res) => {
 @route GET /api/users/me
 @access Public
 */
+// getting the list of all the users
 const getUsers = asyncHandler(async (req, res) => {
     await client.connect()
     const db = client.db("BSP")
@@ -152,6 +161,8 @@ const getUsers = asyncHandler(async (req, res) => {
 @route GET /api/users/:id
 @access Private
 */
+
+// function to delete a user by their id
 const deleteUser = asyncHandler(async (req, res) => {
     const userId = req.params.id
     console.log({ userId })
@@ -196,6 +207,8 @@ const deleteUser = asyncHandler(async (req, res) => {
 @route GET /api/users/:id
 @access Private
 */
+
+// function to update a user by their id
 const updateUser = asyncHandler(
     async (req: Request<{ id: string }, {}, RegisterUserBody>, res) => {
         const user = await UserModel.findById(req.params.id)
@@ -229,6 +242,7 @@ const updateUser = asyncHandler(
     }
 )
 
+// function to generate a json web token (used for authentication)
 // Generate JWT
 const generateToken = (id: string) => {
     return jwt.sign({ id }, "Batfleck", {

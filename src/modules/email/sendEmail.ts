@@ -6,6 +6,8 @@ import getPredictionData from "./getPredictionData"
 
 // send email function
 const sendEmail = async () => {
+    console.log("send email..")
+
     // get the admins
     const admins = await getAdminEmails()
 
@@ -32,13 +34,22 @@ const sendEmail = async () => {
 
     const transporter = await createTransporter()
 
-    transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            console.log(error)
-        } else {
-            console.log("Email sent: " + info.response)
-        }
-    })
+    console.log({ transporter })
+
+    if (!!transporter) {
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error)
+            } else {
+                console.log("Email sent: " + info.response)
+
+                console.log(
+                    "Email Task executed at 12:20 AM",
+                    new Date().toLocaleTimeString()
+                )
+            }
+        })
+    }
 }
 
 export default sendEmail

@@ -4,6 +4,7 @@ import moment from "moment-timezone"
 
 const uri = "mongodb://nasim:nasim%40msf@103.154.184.52:27017"
 
+// Getting mongo client
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -12,6 +13,7 @@ const client = new MongoClient(uri, {
     },
 })
 
+// Inserting the summary information
 const insertSummary = async () => {
     let k = 0
 
@@ -88,6 +90,7 @@ const insertSummary = async () => {
             })
             .filter((index: number) => index !== -1)
 
+        // Calculating the operation, caution, warning info
         const x_rms_vell = []
 
         for (
